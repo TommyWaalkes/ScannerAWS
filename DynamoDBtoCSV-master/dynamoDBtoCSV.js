@@ -63,7 +63,7 @@ var dynamoDB = new AWS.DynamoDB();
 
 var query = {
   TableName: program.table,
-  Limit: 1000
+  Limit: 100
 };
 
 var describeTable = function (query) {
@@ -79,14 +79,15 @@ var describeTable = function (query) {
   );
 };
 
-var scanDynamoDB = function (query) {
+var scanDynamoDB = function (query, index) {
   dynamoDB.scan(query, function (err, data) {
     if (!err) {
       unMarshalIntoArray(data.Items); // Print out the subset of results.
-      if (data.LastEvaluatedKey) {
+      if (data.LastEvaluatedKey && index <= query.Limit) {
         // Result is incomplete; there is more to come.
         query.ExclusiveStartKey = data.LastEvaluatedKey;
-        scanDynamoDB(query);
+        index++;
+        scanDynamoDB(query, index);
       } else {
         let endData = Papa.unparse({
           fields: [...headers],
@@ -138,4 +139,4 @@ function unMarshalIntoArray(items) {
 }
 
 if (program.describe) describeTable(query);
-else scanDynamoDB(query);
+else scanDynamoDB(query, 0);
